@@ -1,10 +1,11 @@
 /**
- * ALICE ESL Phonics P8 - Mighty Fish 3D 海底探險題庫資料
+ * ALICE ESL Phonics P8 - 大魚吃小魚英文冒險題庫 (data.js)
  * 課本學習範圍：Page 08 - 13
- * 主題：Focus Sounds: Diphthongs (ai, oi, air, oy) & Body Parts
+ * 主題：Diphthongs & Body Parts
  */
 
-const P8_FISH_QUESTIONS = [
+window.BOOK_ID = "P8";
+const FISH_QUESTIONS = [
   {
     "id": "fish-qa-1",
     "type": "QA",
@@ -19,7 +20,7 @@ const P8_FISH_QUESTIONS = [
     ],
     "correct": "Yes, it can.",
     "audioFallback": "P8_flashcards_audios/P8_airplane.mp3",
-    "voiceType": "speech"
+    "theme": "Diphthongs & Body Parts"
   },
   {
     "id": "fish-qa-2",
@@ -35,7 +36,7 @@ const P8_FISH_QUESTIONS = [
     ],
     "correct": "Yes, I can.",
     "audioFallback": "P8_flashcards_audios/P8_toes.mp3",
-    "voiceType": "speech"
+    "theme": "Diphthongs & Body Parts"
   },
   {
     "id": "fish-qa-3",
@@ -51,7 +52,7 @@ const P8_FISH_QUESTIONS = [
     ],
     "correct": "rain",
     "audioFallback": "P8_flashcards_audios/P8_rain.mp3",
-    "voiceType": "speech"
+    "theme": "Diphthongs & Body Parts"
   },
   {
     "id": "fish-qa-4",
@@ -67,7 +68,7 @@ const P8_FISH_QUESTIONS = [
     ],
     "correct": "coin",
     "audioFallback": "P8_flashcards_audios/P8_coin.mp3",
-    "voiceType": "speech"
+    "theme": "Diphthongs & Body Parts"
   },
   {
     "id": "fish-qa-5",
@@ -83,7 +84,7 @@ const P8_FISH_QUESTIONS = [
     ],
     "correct": "toy",
     "audioFallback": "P8_flashcards_audios/P8_toy.mp3",
-    "voiceType": "speech"
+    "theme": "Diphthongs & Body Parts"
   },
   {
     "id": "fish-qa-6",
@@ -93,27 +94,16 @@ const P8_FISH_QUESTIONS = [
     "questionZh": "哪一個單字是身體部位？",
     "speechText": "Which word is a body part?",
     "options": [
-      "shoulder",
+      "arm",
       "airplane",
       "soybean"
     ],
-    "correct": "shoulder",
-    "audioFallback": "P8_flashcards_audios/P8_shoulder.mp3",
-    "voiceType": "speech"
+    "correct": "arm",
+    "audioFallback": "P8_flashcards_audios/P8_arm.mp3",
+    "theme": "Diphthongs & Body Parts"
   }
 ];
 
 if (typeof window !== "undefined") {
-  window.P1_FISH_QUESTIONS = P8_FISH_QUESTIONS;
-  window.P8_FISH_QUESTIONS = P8_FISH_QUESTIONS;
-  window.P1_QUESTIONS_DATA = P8_FISH_QUESTIONS;
-  window.P8_QUESTIONS_DATA = P8_FISH_QUESTIONS;
-}
-
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    P1_FISH_QUESTIONS: P8_FISH_QUESTIONS,
-    P8_FISH_QUESTIONS,
-    P1_QUESTIONS_DATA: P8_FISH_QUESTIONS
-  };
+  window.FISH_QUESTIONS = FISH_QUESTIONS;
 }

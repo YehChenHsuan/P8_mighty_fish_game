@@ -1,4 +1,4 @@
-{
+window.SENTENCES_AUDIO_MAP = {
   "Can the airplane fly in the sky?": "assets/audios/tts/fish_q_0_aac4b652.mp3",
   "Yes, it can.": "assets/audios/tts/fish_opt_9635b401.mp3",
   "No, it can't.": "assets/audios/tts/fish_opt_9dcd6713.mp3",
@@ -23,4 +23,4 @@
   "arm": "assets/audios/tts/fish_opt_f926b3e2.mp3",
   "airplane": "assets/audios/tts/fish_opt_45ea37a8.mp3",
   "soybean": "assets/audios/tts/fish_opt_a784e16c.mp3"
-}
+};

@@ -106,4 +106,7 @@ const FISH_QUESTIONS = [
 
 if (typeof window !== "undefined") {
   window.FISH_QUESTIONS = FISH_QUESTIONS;
+  window.P8_FISH_QUESTIONS = FISH_QUESTIONS;
+  window.P1_FISH_QUESTIONS = FISH_QUESTIONS;
+  window[`${window.BOOK_ID}_FISH_QUESTIONS`] = FISH_QUESTIONS;
 }

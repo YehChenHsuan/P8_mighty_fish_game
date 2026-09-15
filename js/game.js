@@ -279,12 +279,21 @@ class MightyFishGame {
    */
   prepareQuestions() {
     let rawList = [];
-    if (typeof P1_FISH_QUESTIONS !== 'undefined' && Array.isArray(P1_FISH_QUESTIONS)) {
+    const bookId = window.BOOK_ID || "P8";
+    if (typeof FISH_QUESTIONS !== 'undefined' && Array.isArray(FISH_QUESTIONS)) {
+      rawList = FISH_QUESTIONS;
+    } else if (typeof window !== 'undefined' && Array.isArray(window.FISH_QUESTIONS)) {
+      rawList = window.FISH_QUESTIONS;
+    } else if (typeof window !== 'undefined' && Array.isArray(window[`${bookId}_FISH_QUESTIONS`])) {
+      rawList = window[`${bookId}_FISH_QUESTIONS`];
+    } else if (typeof window !== 'undefined' && Array.isArray(window.P8_FISH_QUESTIONS)) {
+      rawList = window.P8_FISH_QUESTIONS;
+    } else if (typeof P1_FISH_QUESTIONS !== 'undefined' && Array.isArray(P1_FISH_QUESTIONS)) {
       rawList = P1_FISH_QUESTIONS;
-    } else if (typeof P1_QUESTIONS_DATA !== 'undefined' && Array.isArray(P1_QUESTIONS_DATA)) {
-      rawList = P1_QUESTIONS_DATA;
     } else if (typeof window !== 'undefined' && Array.isArray(window.P1_FISH_QUESTIONS)) {
       rawList = window.P1_FISH_QUESTIONS;
+    } else if (typeof P1_QUESTIONS_DATA !== 'undefined' && Array.isArray(P1_QUESTIONS_DATA)) {
+      rawList = P1_QUESTIONS_DATA;
     } else if (typeof window !== 'undefined' && Array.isArray(window.P1_QUESTIONS_DATA)) {
       rawList = window.P1_QUESTIONS_DATA;
     }

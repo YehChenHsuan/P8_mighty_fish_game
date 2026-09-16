@@ -34,6 +34,7 @@ class MightyFishGame {
     this.questions = [];
     this.currentQuestion = null;
     this.isTransitioningQuestion = false;
+    this.transitionRemaining = null;
 
     // 遊戲流程狀態
     this.gameState = 'READY'; // READY | LOADING_CAMERA | PLAYING | PAUSED | OVER
@@ -272,6 +273,9 @@ class MightyFishGame {
 
     // 9. 解鎖音效 (首次任何點擊皆喚醒 AudioContext)
     window.addEventListener('pointerdown', () => FishSound.unlockAudio(), { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.gameState === 'PLAYING') this.pauseGame();
+    });
   }
 
   /**
@@ -279,15 +283,15 @@ class MightyFishGame {
    */
   prepareQuestions() {
     let rawList = [];
-    const bookId = window.BOOK_ID || "P8";
+    const bookId = window.BOOK_ID || "P1";
     if (typeof FISH_QUESTIONS !== 'undefined' && Array.isArray(FISH_QUESTIONS)) {
       rawList = FISH_QUESTIONS;
     } else if (typeof window !== 'undefined' && Array.isArray(window.FISH_QUESTIONS)) {
       rawList = window.FISH_QUESTIONS;
     } else if (typeof window !== 'undefined' && Array.isArray(window[`${bookId}_FISH_QUESTIONS`])) {
       rawList = window[`${bookId}_FISH_QUESTIONS`];
-    } else if (typeof window !== 'undefined' && Array.isArray(window.P8_FISH_QUESTIONS)) {
-      rawList = window.P8_FISH_QUESTIONS;
+    } else if (typeof window !== 'undefined' && Array.isArray(window.P1_FISH_QUESTIONS)) {
+      rawList = window.P1_FISH_QUESTIONS;
     } else if (typeof P1_FISH_QUESTIONS !== 'undefined' && Array.isArray(P1_FISH_QUESTIONS)) {
       rawList = P1_FISH_QUESTIONS;
     } else if (typeof window !== 'undefined' && Array.isArray(window.P1_FISH_QUESTIONS)) {
@@ -329,6 +333,14 @@ class MightyFishGame {
    * 開始新遊戲
    */
   async startGame() {
+    FishSound.stopVoice();
+    this.transitionRemaining = null;
+    this.dom.saveRankBtn.disabled = false;
+    this.dom.saveRankBtn.textContent = '儲存成績';
+    this.dom.pauseBtn.textContent = '⏸️';
+    this.dom.timerText.classList.remove('timer-warning');
+    gsap.killTweensOf(this.dom.feedbackBanner);
+    this.dom.feedbackBanner.style.opacity = '0';
     this.lives = this.maxLives;
     this.score = 0;
     this.stageIndex = 0;
@@ -396,7 +408,9 @@ class MightyFishGame {
    * 推進至下一題
    */
   nextQuestion() {
-    if (this.gameState !== 'PLAYING' || this.lives <= 0) return;
+    if (this.gameState !== 'PLAYING' || this.lives <= 0 || !this.questions.length) return;
+    FishSound.stopVoice();
+    this.transitionRemaining = null;
 
     this.isTransitioningQuestion = false;
     this.stageIndex++;
@@ -416,12 +430,8 @@ class MightyFishGame {
     // 2. 3D 海底世界生成三路答案圓形光圈
     this.ocean.spawnQuestionGates(this.currentQuestion);
 
-    // 3. 每關開始時自動播放題目語音
-    setTimeout(() => {
-      if (this.gameState === 'PLAYING') {
-        FishSound.playQuestionAudio(this.currentQuestion);
-      }
-    }, 350);
+    // 同步畫面與語音，不留下跨題目的延遲工作。
+    FishSound.playQuestionAudio(this.currentQuestion);
   }
 
   /**
@@ -448,7 +458,7 @@ class MightyFishGame {
    * 重播當前題目的語音
    */
   replayCurrentQuestionAudio() {
-    if (this.currentQuestion) {
+    if (this.currentQuestion && this.gameState === 'PLAYING' && !this.isTransitioningQuestion) {
       FishSound.playQuestionAudio(this.currentQuestion);
       // 按鈕波紋動畫
       gsap.to(this.dom.replayVoiceBtn, { scale: 1.25, duration: 0.15, yoyo: true, repeat: 1 });
@@ -461,17 +471,16 @@ class MightyFishGame {
    * @param {Object} option - 選項資料
    */
   handleGateHit(isCorrect, option) {
-    if (this.isTransitioningQuestion) return;
+    if (this.gameState !== 'PLAYING' || this.isTransitioningQuestion) return;
     this.isTransitioningQuestion = true;
     this.totalQuestionsAnswered++;
 
-    // 只有大魚吃小魚時，才是唸出小魚身上文字的語音！
+    // 作答時先停止題目語音；僅答對才朗讀所選答案。
     const optionText = typeof option === 'string' ? option : (option.text || '');
-    if (optionText) {
-      FishSound.speakOptionText(optionText);
-    }
+    FishSound.stopVoice();
 
     if (isCorrect) {
+      if (optionText) FishSound.speakOptionText(optionText);
       // 答對邏輯：
       this.correctCount++;
       this.streak++;
@@ -496,30 +505,19 @@ class MightyFishGame {
       FishSound.playWrongSound();
 
       // 顯示錯誤警示橫幅
-      this.showFeedbackBanner(false, `OOPS! 扣除 1 顆生命`, `正確答案是: ${this.getCorrectAnswerText()}`);
+      this.showFeedbackBanner(false, `OOPS! 扣除 1 顆生命`, `你選：${optionText} · 正解：${this.getCorrectAnswerText()}`);
     }
 
     this.updateHud();
 
-    // 檢查遊戲是否結束 (錯五題扣光五顆心)
-    if (this.lives <= 0) {
-      setTimeout(() => this.triggerGameOver('生命值已耗盡！'), 1300);
-      return;
-    }
-
-    // 1.5 秒後推進下一題，讓玩家清晰聆聽小魚身上被吃到的單字語音
-    setTimeout(() => {
-      if (this.gameState === 'PLAYING') {
-        this.nextQuestion();
-      }
-    }, 1500);
+    this.transitionRemaining = 1.5;
   }
 
   /**
    * 錯過所有光圈 (未游進任何一圈)
    */
   handleGateMiss() {
-    if (this.isTransitioningQuestion) return;
+    if (this.gameState !== 'PLAYING' || this.isTransitioningQuestion) return;
     this.isTransitioningQuestion = true;
     this.totalQuestionsAnswered++;
     this.streak = 0;
@@ -529,22 +527,14 @@ class MightyFishGame {
     this.showFeedbackBanner(false, '錯過了答案小魚！', `正確答案是: ${this.getCorrectAnswerText()}`);
     this.updateHud();
 
-    if (this.lives <= 0) {
-      setTimeout(() => this.triggerGameOver('生命值已耗盡！'), 1200);
-      return;
-    }
-
-    setTimeout(() => {
-      if (this.gameState === 'PLAYING') {
-        this.nextQuestion();
-      }
-    }, 1300);
+    FishSound.stopVoice();
+    this.transitionRemaining = 1.3;
   }
 
   getCorrectAnswerText() {
     if (!this.currentQuestion) return '';
     const correct = this.currentQuestion.options.find(o => o.isCorrect);
-    return correct ? `${correct.text} (${correct.zh || ''})` : '';
+    return correct ? `${correct.text}${correct.zh ? ` (${correct.zh})` : ''}` : '';
   }
 
   /**
@@ -608,6 +598,8 @@ class MightyFishGame {
    * 遊戲結束結算
    */
   triggerGameOver(reason) {
+    FishSound.stopVoice();
+    this.transitionRemaining = null;
     this.gameState = 'OVER';
     clearInterval(this.timerInterval);
     if (this.ocean) this.ocean.setPaused(true);
@@ -718,6 +710,8 @@ class MightyFishGame {
    * @param {boolean} fromStartScreen - 是否從遊戲首頁開啟
    */
   openSettings(fromStartScreen = false) {
+    this.settingsWasPlaying = this.gameState === 'PLAYING';
+    if (this.settingsWasPlaying) this.pauseGame();
     this.isSettingsFromStart = fromStartScreen || (this.gameState === 'READY');
 
     // 若從首頁開啟，暫時隱藏首頁視窗讓設定頁呈現
@@ -757,6 +751,10 @@ class MightyFishGame {
 
   closeSettings() {
     this.dom.settingsModal.style.display = 'none';
+    if (this.settingsWasPlaying) {
+      this.settingsWasPlaying = false;
+      this.resumeGame();
+    }
     // 若遊戲尚未開始且是從首頁進來，恢復首頁視窗
     if (this.gameState === 'READY' && this.dom.startModal) {
       this.dom.startModal.style.display = 'flex';
@@ -779,9 +777,12 @@ class MightyFishGame {
     // 讀取倒數時間設定
     const activeTimeEl = document.querySelector('.timer-option.active');
     if (activeTimeEl) {
+      const oldTime = this.initialTime;
       this.initialTime = parseInt(activeTimeEl.dataset.time);
-      if (this.gameState === 'READY') {
+      if (this.gameState === 'READY' || oldTime !== this.initialTime) {
         this.remainingTime = this.initialTime;
+        this.dom.timerText.classList.remove('timer-warning');
+        if (this.gameState === 'PAUSED' || this.gameState === 'PLAYING') this.startTimer();
       }
     }
 
@@ -878,6 +879,7 @@ class MightyFishGame {
   }
 
   pauseGame() {
+    FishSound.stopVoice();
     this.gameState = 'PAUSED';
     if (this.ocean) this.ocean.setPaused(true);
     this.dom.pauseBtn.textContent = '▶️';
@@ -887,13 +889,30 @@ class MightyFishGame {
     this.gameState = 'PLAYING';
     if (this.ocean) this.ocean.setPaused(false);
     this.dom.pauseBtn.textContent = '⏸️';
+    if (!this.isTransitioningQuestion) this.replayCurrentQuestionAudio();
   }
 
   /**
    * 主渲染物理迴圈 (RequestAnimationFrame)
    */
+  // 使用遊戲時間推進，暫停不會吞掉換題事件；等待選項朗讀結束。
+  updateTransition(delta) {
+    if (this.gameState !== 'PLAYING' || this.transitionRemaining === null) return;
+    this.transitionRemaining -= delta;
+    if (this.transitionRemaining <= 0 && !FishSound.voiceAudio && !FishSound.utterance) {
+      this.transitionRemaining = null;
+      if (this.lives <= 0) this.triggerGameOver('生命值已耗盡！');
+      else this.nextQuestion();
+    }
+  }
+
   startRenderLoop() {
+    let previousTime = performance.now();
     const loop = () => {
+      const now = performance.now();
+      const delta = Math.min((now - previousTime) / 1000, 0.1);
+      previousTime = now;
+      this.updateTransition(delta);
       requestAnimationFrame(loop);
 
       if (this.ocean) {

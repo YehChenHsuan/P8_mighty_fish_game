@@ -20,25 +20,30 @@ class MightyFish {
     this.currentColor = new THREE.Color(0x00ceff);
 
     // 材質系統
-    this.bodyMat = new THREE.MeshLambertMaterial({
+    this.bodyMat = new THREE.MeshStandardMaterial({
       color: 0x00ceff,
-      flatShading: true
+      roughness: 0.32,
+      metalness: 0.08
     });
-    this.whiteMat = new THREE.MeshLambertMaterial({
+    this.whiteMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      flatShading: true
+      roughness: 0.32,
+      metalness: 0.08
     });
-    this.blackMat = new THREE.MeshLambertMaterial({
+    this.blackMat = new THREE.MeshStandardMaterial({
       color: 0x1e293b,
-      flatShading: true
+      roughness: 0.32,
+      metalness: 0.08
     });
-    this.redMat = new THREE.MeshLambertMaterial({
+    this.redMat = new THREE.MeshStandardMaterial({
       color: 0xf43f5e,
-      flatShading: true
+      roughness: 0.32,
+      metalness: 0.08
     });
-    this.toothMat = new THREE.MeshLambertMaterial({
+    this.toothMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      flatShading: true
+      roughness: 0.32,
+      metalness: 0.08
     });
 
     // 動畫關節參照
@@ -55,12 +60,18 @@ class MightyFish {
 
   buildFish() {
     // 1. 魚身本體 (Cube / Box 造型)
-    const bodyGeom = new THREE.BoxGeometry(110, 110, 110);
+    const bodyGeom = new THREE.SphereGeometry(67, 32, 24).scale(1, 0.84, 0.83);
     this.body = new THREE.Mesh(bodyGeom, this.bodyMat);
     this.body.position.set(0, 0, 0);
     this.body.castShadow = true;
     this.body.receiveShadow = true;
     this.threeGroup.add(this.body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(49, 24, 16),
+      new THREE.MeshStandardMaterial({ color: 0xd7fff5, roughness: 0.42 }));
+    belly.scale.set(1.02, 0.62, 0.88);
+    belly.position.set(5, -25, 0);
+    this.threeGroup.add(belly);
 
     // 2. 魚尾 (Cylinder 錐體接關節)
     const tailGeom = new THREE.CylinderGeometry(0, 55, 60, 4, 1);
@@ -94,8 +105,8 @@ class MightyFish {
     this.threeGroup.add(this.sideLeftFin);
 
     // 5. 大眼睛 (立體方塊與瞳孔)
-    const eyeGeom = new THREE.BoxGeometry(38, 38, 10);
-    const irisGeom = new THREE.BoxGeometry(16, 16, 10);
+    const eyeGeom = new THREE.SphereGeometry(20, 24, 16).scale(1, 1, 0.45);
+    const irisGeom = new THREE.SphereGeometry(9, 20, 12).scale(1, 1, 0.65);
 
     // 右眼
     this.rightEye = new THREE.Mesh(eyeGeom, this.whiteMat);
@@ -152,31 +163,31 @@ class MightyFish {
     }
     const targetCalculatedSpeed = targetSpeed * this.speedFactor;
     // 快速平滑過渡 (加減速反應更敏捷迅速)
-    this.speed += (targetCalculatedSpeed - this.speed) * 0.28;
+    this.speed += (targetCalculatedSpeed - this.speed) * (1 - Math.pow(0.72, delta * 60));
 
     // 2. 垂直目標高度平滑跟隨 (-180 ~ +180)
     const targetY = (inputNormY - 0.5) * 360;
-    this.pos.y += (targetY - this.pos.y) * 0.18;
+    this.pos.y += (targetY - this.pos.y) * (1 - Math.pow(0.82, delta * 60));
 
     // 水平位置響應：左移靠後 (-220)，右移顯著前進衝刺 (-110)
     const targetX = -220 + inputNormX * 110;
-    this.pos.x += (targetX - this.pos.x) * 0.24;
+    this.pos.x += (targetX - this.pos.x) * (1 - Math.pow(0.76, delta * 60));
 
     this.threeGroup.position.set(this.pos.x, this.pos.y, 0);
 
     // 3. 俯仰角度 (Pitch)：魚向上游抬頭，向下游俯衝
     const targetRotZ = ((targetY - this.pos.y) / 360) * 0.55;
-    this.threeGroup.rotation.z += (targetRotZ - this.threeGroup.rotation.z) * 0.18;
+    this.threeGroup.rotation.z += (targetRotZ - this.threeGroup.rotation.z) * (1 - Math.pow(0.82, delta * 60));
 
     // 微幅航向左右擺動 (Yaw)
     this.threeGroup.rotation.y = Math.sin(this.angleFin * 0.5) * 0.08;
 
     // 4. 尾巴與魚鰭拍動動畫
     if (this.speed > 0.02) {
-      this.angleFin += this.speed * 0.14;
+      this.angleFin += this.speed * 8.4 * delta;
     } else {
       // 暫停時進行極微弱的靜態呼吸擺動
-      this.angleFin += 0.03;
+      this.angleFin += 1.8 * delta;
     }
 
     if (this.tail) {

@@ -970,3 +970,48 @@ html, body {
     font-size: 0.95rem !important;
   }
 }
+
+/* 深海冒險 HUD：保留大字題目，降低大型網頁面板的存在感。 */
+#webgl-container::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 35%, transparent 45%, rgba(1, 14, 30, .4) 100%);
+}
+#question-card {
+  width: max-content; min-width: 430px; max-width: min(840px, 90vw);
+  background: linear-gradient(135deg, rgba(5, 37, 53, .93), rgba(4, 24, 42, .82));
+  border: 1px solid rgba(134, 243, 225, .5); border-bottom: 3px solid #218a98;
+  box-shadow: 0 8px 0 rgba(0, 15, 29, .3), inset 0 1px 0 #a4efe733, 0 15px 40px #00132277;
+}
+#question-en { font-family: 'Fredoka', 'Outfit', sans-serif; letter-spacing: .3px; }
+.hud-item { border-color: #73dcca55; background: #042431cc; box-shadow: 0 4px 0 #00192188; }
+.btn-primary { background: linear-gradient(#ffe494, #f5b842); color: #173746; text-shadow: none;
+  box-shadow: 0 5px 0 #a46a21, 0 9px 22px #0005; }
+#replay-voice-btn { background: linear-gradient(#84f1db, #2bb6be); box-shadow: 0 4px 0 #126679; }
+.modal-content { border-color: #83ebd466; background: linear-gradient(145deg, #123e50f5, #051b30f5); }
+.modal-title { color: #ffe7a1; }
+button:focus-visible { outline: 3px solid #ffe6a1; outline-offset: 4px; }
+@media (max-height: 550px) {
+  #question-card { top: 57px; min-width: 0; padding: 7px 15px; }
+  #question-en { font-size: 1.2rem; }
+  #question-zh { font-size: .8rem; }
+  #question-type-badge { font-size: .6rem; }
+}
+
+.adventure-kicker { color: #91e5d3; font-size: .7rem; font-weight: 800; letter-spacing: 3px; margin-bottom: 9px; }
+#start-modal .modal-title { font-family: 'Fredoka', sans-serif; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.05; letter-spacing: 1px; text-shadow: 0 4px 0 #795f37, 0 9px 24px #0007; }
+.mission-steps { display: flex; justify-content: space-around; gap: 12px; padding: 20px 0; border-top: 1px solid #81ddcc33; border-bottom: 1px solid #81ddcc33; }
+.mission-steps div { display: flex; flex-direction: column; gap: 9px; }
+.mission-steps span { font-size: .65rem; letter-spacing: 1px; color: #92c6cf; }
+.mission-steps strong { font-size: 1.15rem; color: #fff2ca; }
+.control-hint { font-size: .83rem; line-height: 1.9; color: #bad6dd; margin: 18px 0; }
+@media (max-height: 550px) {
+  #start-modal .modal-content { max-width: 720px; padding: 14px 24px; }
+  #start-modal .modal-subtitle { margin-bottom: 8px; }
+  .adventure-kicker { margin-bottom: 4px; font-size: .6rem; }
+  .mission-steps { padding: 9px 0; }
+  .mission-steps div { gap: 3px; }
+  .mission-steps strong { font-size: .95rem; }
+  .control-hint { margin: 8px 0; font-size: .7rem; line-height: 1.5; }
+  #start-settings-summary { padding: 8px; margin-bottom: 12px; }
+  #start-modal .start-btn-group button { padding: 10px 14px; }
+}

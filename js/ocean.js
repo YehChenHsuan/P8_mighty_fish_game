@@ -39,24 +39,23 @@ class OceanScene {
     // 1. 建立 3D 場景與海洋霧氣效果 (深水藍漸層)
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a2238);
-    this.scene.fog = new THREE.FogExp2(0x0a2238, 0.0016);
+    this.scene.fog = new THREE.FogExp2(0x0a2238, 0.0007);
 
     // 2. 攝影機配置 (透視投影)
     this.camera = new THREE.PerspectiveCamera(60, width / height, 1, 2000);
-    this.camera.position.set(0, 0, 480);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.position.set(0, 50, 480);
+    this.camera.lookAt(0, 50, 0);
 
     // 3. WebGL 渲染器 (平滑抗鋸齒、陰影映射)
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(this.renderer.domElement);
-
-    // 視窗縮放自適應監聽
-    window.addEventListener('resize', () => this.onResize());
-    window.addEventListener('orientationchange', () => setTimeout(() => this.onResize(), 150));
 
     // 4. 光照配置 (呈現深海光斑與高對比立體感)
     this.setupLights();
@@ -67,6 +66,7 @@ class OceanScene {
 
     // 6. 海底前進動態粒子系統 (流光氣泡與浮游物)
     this.setupParticles();
+    this.setupReef();
 
     // 7. 答案光圈母容器
     this.gateParentGroup = new THREE.Group();
@@ -120,16 +120,79 @@ class OceanScene {
   /**
    * 建立前進感粒子系統（向左流動，速度與魚速同步）
    */
+  setupReef() {
+    this.reefPlants = [];
+    this.lightRays = [];
+    // 程序化礁石、海草與珊瑚，置於答案航道後方。
+    const rockGeo = new THREE.IcosahedronGeometry(1, 1);
+    const stemGeo = new THREE.CylinderGeometry(4, 6, 1, 8);
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x14545f, roughness: 0.94 });
+    const palette = [0xff9879, 0x38b9a5, 0xb47ada, 0xeab961];
+    for (let i = 0; i < 26; i++) {
+      const x = -950 + i * 76;
+      const z = -100 - (i % 3) * 85;
+      const rock = new THREE.Mesh(rockGeo, rockMat);
+      rock.position.set(x, -275, z);
+      rock.scale.set(55 + Math.random() * 50, 45 + Math.random() * 36, 46);
+      this.scene.add(rock);
+      const plant = new THREE.Group();
+      plant.position.set(x, -247, z + 20);
+      const mat = new THREE.MeshStandardMaterial({
+        color: palette[i % 4], roughness: 0.6, metalness: 0.08,
+        emissive: palette[i % 4], emissiveIntensity: 0.08
+      });
+      for (let j = 0; j < 5; j++) {
+        const height = 24 + Math.random() * 65;
+        const stem = new THREE.Mesh(stemGeo, mat);
+        stem.scale.y = height;
+        stem.position.set((j - 2) * 9, height / 2, 0);
+        stem.rotation.z = (j - 2) * 0.18;
+        plant.add(stem);
+        const tip = new THREE.Mesh(rockGeo, mat);
+        tip.position.set((j - 2) * 9 - Math.sin(stem.rotation.z) * height / 2, height, 0);
+        tip.scale.set(7, 10, 7);
+        plant.add(tip);
+      }
+      this.reefPlants.push(plant);
+      this.scene.add(plant);
+    }
+    // 半透明光束僅覆蓋背景，保留題目對比。
+    const beamCanvas = document.createElement('canvas');
+    beamCanvas.width = 64; beamCanvas.height = 64;
+    const beamCtx = beamCanvas.getContext('2d');
+    const fade = beamCtx.createLinearGradient(0, 0, 64, 0);
+    fade.addColorStop(0, 'rgba(255,255,255,0)');
+    fade.addColorStop(0.5, 'rgba(255,255,255,1)');
+    fade.addColorStop(1, 'rgba(255,255,255,0)');
+    beamCtx.fillStyle = fade; beamCtx.fillRect(0, 0, 64, 64);
+    const beamTexture = new THREE.CanvasTexture(beamCanvas);
+    for (let i = 0; i < 6; i++) {
+      const ray = new THREE.Mesh(new THREE.PlaneGeometry(55 + i * 9, 1100),
+        new THREE.MeshBasicMaterial({ map: beamTexture, color: 0x75e8ef, transparent: true,
+          opacity: 0.05, depthWrite: false, blending: THREE.AdditiveBlending }));
+      ray.position.set(-650 + i * 240, 140, -430);
+      ray.rotation.z = -0.28;
+      this.lightRays.push(ray);
+      this.scene.add(ray);
+    }
+    const seabed = new THREE.Mesh(new THREE.PlaneGeometry(2800, 1000),
+      new THREE.MeshStandardMaterial({ color: 0x176b75, roughness: 1 }));
+    seabed.rotation.x = -Math.PI / 2;
+    seabed.position.set(0, -305, -200);
+    seabed.receiveShadow = true;
+    this.scene.add(seabed);
+  }
+
   setupParticles() {
     this.scene.add(this.particleGroup);
-    const particleGeom = new THREE.BoxGeometry(3, 3, 3);
+    const particleGeom = new THREE.IcosahedronGeometry(1.8, 1);
     const particleMat = new THREE.MeshBasicMaterial({
       color: 0x7dd3fc,
       transparent: true,
       opacity: 0.65
     });
 
-    const count = 160;
+    const count = 65;
     for (let i = 0; i < count; i++) {
       const p = new THREE.Mesh(particleGeom, particleMat);
       p.position.set(
@@ -234,11 +297,14 @@ class OceanScene {
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
+    texture.encoding = THREE.sRGBEncoding;
+    texture.anisotropy = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
 
     // 2.5D 魚身平面模型 (寬 138, 高 66，小巧精緻可愛，不佔據過多海底畫面)
-    const geom = new THREE.PlaneGeometry(138, 66);
+    const geom = new THREE.PlaneGeometry(170, 82);
     const mat = new THREE.MeshBasicMaterial({
       map: texture,
+      toneMapped: false,
       transparent: true,
       side: THREE.DoubleSide
     });
@@ -481,6 +547,8 @@ class OceanScene {
     if (this.gateGroup) {
       this.gateParentGroup.remove(this.gateGroup);
       this.gates.forEach(g => {
+        gsap.killTweensOf(g.group.scale);
+        gsap.killTweensOf(g.group.position);
         if (g.mat) g.mat.dispose();
         if (g.geom) g.geom.dispose();
         if (g.texture) g.texture.dispose();
@@ -495,9 +563,21 @@ class OceanScene {
    * 逐幀物理更新與碰撞判定
    */
   update(normX, normY) {
-    if (this.isPaused) return;
+    if (this.isPaused) {
+      this.clock.getDelta();
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
 
     const delta = Math.min(this.clock.getDelta(), 0.1);
+
+    const time = this.clock.elapsedTime;
+    this.reefPlants.forEach((plant, i) => {
+      plant.rotation.z = Math.sin(time * 0.8 + i) * 0.055;
+    });
+    this.lightRays.forEach((ray, i) => {
+      ray.material.opacity = 0.045 + Math.sin(time * 0.4 + i) * 0.015;
+    });
 
     // 1. 更新玩家魚游動位置、色彩與身形
     if (this.fish) {

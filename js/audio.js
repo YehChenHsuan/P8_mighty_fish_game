@@ -9,6 +9,8 @@ class FishAudioController {
     this.isMuted = false;
     this.voiceAudio = null;
     this.currentQuestion = null;
+    this.voiceToken = 0;
+    this.voiceTimer = null;
 
     // 延遲初始化 Web Audio
     this.initAudioContext();
@@ -144,138 +146,101 @@ class FishAudioController {
     } catch (e) {}
   }
 
-  /**
-   * 取得題目應朗讀之完整句子 (TTS)：
-   * 1. 保證朗讀「整段題目內容」，絕不只唸單字。
-   * 2. 若題目中包含底線 __ 的填空部分，直接將底線替換為正確答案唸出，畫面保持 __。
-   * 3. 去除音標斜線符號 (例如 /f/, /dʒ/, /r/)，避免 TTS 唸出 slash。
-   */
+  // 題目文字是唯一來源；不可用答案單字代替完整問句。
   getQuestionSpeechSentence(qData) {
-    if (!qData) return "";
-
-    // 優先使用 speechText，若無則使用 questionEn
-    let text = qData.speechText || qData.questionEn || "";
-
-    // 若文本中包含底線 _、__、___ 等，替換為正確答案唸出
-    const correctWord = qData.correct || "";
-    if (/_{1,}/.test(text)) {
-      text = text.replace(/_{1,}/g, correctWord);
-    } else if (qData.questionEn && /_{1,}/.test(qData.questionEn)) {
-      text = qData.questionEn.replace(/_{1,}/g, correctWord);
-    }
-
-    // 移除音標符號 (例如 /r/, /dʒ/, /f/)，避免 TTS 唸出 slash
-    text = text.replace(/\/[^/]+\//g, "").trim();
-    // 整理連續空格
-    text = text.replace(/\s+/g, " ");
-
-    return text;
+    return (qData?.questionEn || "").replace(/_+/g, "blank").replace(/\s+/g, " ").trim();
   }
 
-  /**
-   * 播放題目語音：
-   * 所有題目一律使用 TTS 瀏覽器語音合成朗讀「整段題目完整英文內容」！
-   * 若題目中含有底線 __，TTS 直接唸出答案，畫面依然只顯示 __。
-   */
   playQuestionAudio(qData, onEnded = null) {
-    if (this.isMuted || !qData) return;
-    this.stopVoice();
     this.currentQuestion = qData;
-
-    const sentence = this.getQuestionSpeechSentence(qData);
-    if (!sentence) {
-      if (onEnded) onEnded();
-      return;
-    }
-
-    // 一律使用 TTS 朗讀完整題目英文內容
-    this.speakFullSentence(sentence, () => {
-      if (onEnded) onEnded();
-    }, () => {
-      // 若 Web Speech API 異常時備援
-      if (qData.audioFallback) {
-        this.playAudioFile(qData.audioFallback, onEnded);
-      } else if (onEnded) {
-        onEnded();
-      }
-    });
+    this.speakFullSentence(this.getQuestionSpeechSentence(qData), onEnded);
   }
 
-  /**
-   * 只有大魚吃小魚時，朗讀小魚身上文字的語音 (使用 Google Cloud Neural2 預錄音檔)
-   */
-  speakOptionText(text) {
-    if (this.isMuted || !text) return;
-    this.stopVoice();
-    this.speakFullSentence(text);
+  speakOptionText(text, onEnded = null) {
+    this.speakFullSentence(text, onEnded);
   }
 
-  /**
-   * 使用預先合成之 Google Cloud Neural2 最高品質音檔播放完整句子或選項
-   */
   speakFullSentence(text, onSuccess = null, onError = null) {
-    if (this.isMuted || !text) {
-      if (onSuccess) onSuccess();
-      return;
-    }
     this.stopVoice();
-
+    if (this.isMuted || !text) { onSuccess?.(); return; }
     const clean = text.trim();
-    const map = window.SENTENCES_AUDIO_MAP || this._audioMap || {};
-    const audioPath = map[clean] || map[clean.replace(/,\s*/g, ' ')];
-
-    if (audioPath) {
-      this.currentAudio = new Audio(audioPath);
-      this.currentAudio.onended = () => { if (onSuccess) onSuccess(); };
-      this.currentAudio.onerror = (e) => {
-        if (onError) onError();
-        else if (onSuccess) onSuccess();
-      };
-      this.currentAudio.play().catch(e => {
-        if (onSuccess) onSuccess();
-      });
+    const path = (window.SENTENCES_AUDIO_MAP || {})[clean];
+    if (path) {
+      this.playAudioFile(path, onSuccess, () => this.speakBrowser(clean, onSuccess, onError));
     } else {
-      // 嘗試找 flashcard 音檔
-      const book = window.BOOK_ID || "P8";
-      const fb = book + "_flashcards_audios/" + book + "_" + clean.toLowerCase() + ".mp3";
-      this.playAudioFile(fb, onSuccess);
+      this.speakBrowser(clean, onSuccess, onError);
     }
   }
 
-  /**
-   * 播放教材音檔路徑 (HTML5 Audio)
-   */
-  playAudioFile(audioPath, onEnded = null) {
-    try {
+  // 音檔缺失時讀出同一句文字，不猜檔名、不改讀答案。
+  speakBrowser(text, onEnded, onError) {
+    this.stopVoice();
+    const token = this.voiceToken;
+    const done = () => {
+      if (token !== this.voiceToken) return;
       this.stopVoice();
+      onEnded?.();
+    };
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+      (onError || onEnded)?.();
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find(v => v.lang === 'en-US' && /natural|google|samantha/i.test(v.name))
+      || voices.find(v => v.lang === 'en-US') || null;
+    utterance.onend = done;
+    utterance.onerror = () => {
+      if (token !== this.voiceToken) return;
+      this.stopVoice();
+      (onError || onEnded)?.();
+    };
+    this.utterance = utterance;
+    this.voiceTimer = setTimeout(done, 15000);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  playAudioFile(audioPath, onEnded = null, onError = null) {
+    this.stopVoice();
+    if (this.isMuted) { onEnded?.(); return; }
+    const token = this.voiceToken;
+    const finish = (failed = false) => {
+      if (token !== this.voiceToken) return;
+      this.stopVoice();
+      (failed ? (onError || onEnded) : onEnded)?.();
+    };
+    try {
       const audio = new Audio(audioPath);
       this.voiceAudio = audio;
-      audio.onended = () => {
-        if (onEnded) onEnded();
-      };
-      audio.play().catch(err => {
-        console.warn("Audio play prevented:", err);
-        if (onEnded) onEnded();
-      });
-    } catch (e) {
-      if (onEnded) onEnded();
-    }
+      audio.onended = () => finish();
+      audio.onerror = () => finish(true);
+      this.voiceTimer = setTimeout(() => finish(true), 15000);
+      const playing = audio.play();
+      if (playing) playing.catch(() => finish(true));
+    } catch (error) { finish(true); }
   }
 
-  /**
-   * 停止當前正在播放的語音
-   */
   stopVoice() {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    // 先使舊事件失效，再停止播放器，避免取消事件觸發下一段語音。
+    this.voiceToken++;
+    clearTimeout(this.voiceTimer);
+    this.voiceTimer = null;
+    if (this.utterance) {
+      this.utterance.onend = this.utterance.onerror = null;
+      this.utterance = null;
     }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (this.voiceAudio) {
-      this.voiceAudio.pause();
-      this.voiceAudio.currentTime = 0;
+      const audio = this.voiceAudio;
       this.voiceAudio = null;
+      audio.onended = audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
     }
   }
 }
 
-// 匯出全域單例
 const FishSound = new FishAudioController();

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🐟 Mighty Fish (P8): 海底英語大冒險 (Focus Sounds: Diphthongs (ai, oi, air, oy) & Body Parts)</title>
-  <link rel="stylesheet" href="css/style.css">
-  <meta name="description" content="ALICE ESL Phonics P8 專屬 3D 海底互動美語學習遊戲，涵蓋課本 Page 08 - 13，支援滑鼠、觸控與 AI 食指追蹤。">
+  <title>Mighty Fish: 海底英語大冒險 (ESL 3D 拼讀闖關遊戲)</title>
+  <link rel="stylesheet" href="css/style.css?v=20260916-fish3">
+  <meta name="description" content="結合 Karim Maaloul 3D Mighty Fish 與 P8 美語教材的互動闖關學習遊戲，支援滑鼠、觸控與 AI 食指指尖視訊辨識控制。">
 
   <!-- 3D 與動畫 CDN 庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -88,19 +88,15 @@
   <!-- 遊戲開始歡迎彈跳視窗 -->
   <div id="start-modal" class="modal-overlay">
     <div class="modal-content">
-      <h1 class="modal-title">🌊 Mighty Fish 海底大冒險</h1>
-      <p class="modal-subtitle">帶領勇敢小魚游向迎面而來的正確答案小魚，學習 ESL 英語！</p>
-
-      <div style="background: rgba(14, 38, 64, 0.6); border: 1px solid var(--glass-border); border-radius: 16px; padding: 18px; margin-bottom: 20px; text-align: left; font-size: 0.95rem; line-height: 1.7;">
-        <p>🎯 <strong>遊戲玩法：</strong></p>
-        <p>• 觀察上方題目與聆聽題目語音，游向迎面游來的正確答案小魚。</p>
-        <p>• 碰到正確小魚會變為綠色並加分；碰到錯誤小魚會變為紅色並扣除一顆生命（共 5 顆心）。</p>
-        <p>🎮 <strong>操控規則：</strong></p>
-        <p>• <strong>指標/指尖越靠右：</strong> 魚游得越快（身形變長、顏色變為粉紅衝刺！）。</p>
-        <p>• <strong>越靠左：</strong> 魚游得越慢（最左底暫停游動，等待您思考）。</p>
-        <p>• <strong>上下移動：</strong> 控制魚的游泳高度與俯仰角度。</p>
-        <p>• 支援 <strong>滑鼠游標</strong>、<strong>觸控滑動</strong> 與 <strong>AI 食指指尖追蹤</strong>。</p>
+      <div class="adventure-kicker">CORAL REEF · ENGLISH QUEST</div>
+      <h1 class="modal-title">MIGHTY FISH</h1>
+      <p class="modal-subtitle">海底英語大冒險 · 聽懂問題，游向答案！</p>
+      <div class="mission-steps">
+        <div><span>01 / LISTEN</span><strong>🔊 聽題目</strong></div>
+        <div><span>02 / SWIM</span><strong>🐟 找答案</strong></div>
+        <div><span>03 / CATCH</span><strong>⭐ 吃魚得分</strong></div>
       </div>
+      <p class="control-hint">上下移動控制高度 · 靠右加速 · 靠左慢游<br>滑鼠、觸控或食指皆可操作。答錯或錯過扣一顆心，共 5 顆。</p>
 
       <!-- 當前設定摘要卡片 -->
       <div id="start-settings-summary" class="settings-summary-badge">
@@ -222,13 +218,13 @@
   </div>
 
   <!-- 應用程式各核心模組引入 (依相依順序載入) -->
-  <script src="js/data.js"></script>
-  <script src="js/sentences_map.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/fish.js"></script>
-  <script src="js/ocean.js"></script>
-  <script src="js/hand_tracker.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/data.js?v=20260916-fish3"></script>
+  <script src="js/sentences_map.js?v=20260916-fish3"></script>
+  <script src="js/audio.js?v=20260916-fish3"></script>
+  <script src="js/fish.js?v=20260916-fish3"></script>
+  <script src="js/ocean.js?v=20260916-fish3"></script>
+  <script src="js/hand_tracker.js?v=20260916-fish3"></script>
+  <script src="js/game.js?v=20260916-fish3"></script>
 
   <!-- 輔助設定頁分段按鈕點擊切換事件 -->
   <script>
@@ -245,3 +241,4 @@
   </script>
 </body>
 </html>
+
